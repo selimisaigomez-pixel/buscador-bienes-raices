@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link href="http://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+  <link type="text/css" rel="stylesheet" href="css/materialize.min.css"  media="screen,projection"/>
+  <link type="text/css" rel="stylesheet" href="css/customColors.css"  media="screen,projection"/>
+  <link type="text/css" rel="stylesheet" href="css/ion.rangeSlider.css"  media="screen,projection"/>
+  <link type="text/css" rel="stylesheet" href="css/ion.rangeSlider.skinFlat.css"  media="screen,projection"/>
+  <link type="text/css" rel="stylesheet" href="css/index.css"  media="screen,projection"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Formulario</title>
+</head>
+
+<body>
+  <video src="img/video.mp4" id="vidFondo"></video>
+
+  <div class="contenedor">
+    <div class="card rowTitulo">
+      <h1>Buscador</h1>
+    </div>
+    <div class="colFiltros">
+      <form action="buscador.php" method="post" id="formulario">
+        <div class="filtrosContenido">
+          <div class="tituloFiltros">
+            <h5>Realiza una búsqueda personalizada</h5>
+          </div>
+          <div class="filtroCiudad input-field">
+            <label for="selectCiudad">Ciudad:</label>
+            <select name="ciudad" id="selectCiudad">
+              <option value="" selected>Elige una ciudad</option>
+            </select>
+          </div>
+          <div class="filtroTipo input-field">
+            <label for="selecTipo">Tipo:</label><br>
+            <select name="tipo" id="selectTipo">
+              <option value="" selected>Elige un tipo</option>
+            </select>
+          </div>
+          <div class="filtroPrecio">
+            <label for="rangoPrecio">Precio:</label>
+            <input type="text" id="rangoPrecio" name="precio" value="" />
+          </div>
+          <div class="botonField">
+            <input type="submit" class="btn white" value="Buscar" id="submitButton">
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="colContenido">
+      <div class="tituloContenido card">
+        <h5>Resultados de la búsqueda:</h5>
+        <div class="divider"></div>
+        <button type="button" name="todos" class="btn-flat waves-effect" id="mostrarTodos">Mostrar Todos</button>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="text/javascript" src="js/jquery-3.0.0.js"></script>
+  <script type="text/javascript" src="js/ion.rangeSlider.min.js"></script>
+  <script type="text/javascript" src="js/materialize.min.js"></script>
+  <script type="text/javascript" src="js/index.js"></script>
+
+  <script type="text/javascript">
+    /* ---------- Buscador: consulta buscador.php (MariaDB) ---------- */
+    function mostrarMensaje(texto){
+      var $c = $('.colContenido');
+      $c.find('.itemMostrado, .mensajeBuscador').remove();
+      $c.append('<div class="card mensajeBuscador"><div class="card-content">' + texto + '</div></div>');
+    }
+
+    function mostrarError(xhr){
+      var detalle = (xhr && xhr.responseJSON && xhr.responseJSON.error) ? xhr.responseJSON.error : '';
+      mostrarMensaje('No se pudo consultar la base de datos. ' + detalle +
+        '<br>Verifica que Apache y MySQL estén iniciados y que importaste bienes_raices.sql en phpMyAdmin.');
+    }
+
+    function plantillaItem(r){
+      return '<div class="card horizontal itemMostrado">' +
+          '<div class="card-image"><img src="img/home.jpg" alt="Casa en venta"></div>' +
+          '<div class="card-stacked">' +
+            '<div class="card-content">' +
+              '<div><b>Dirección: </b>' + r.Direccion + '</div>' +
+              '<div><b>Ciudad: </b>' + r.Ciudad + '</div>' +
+              '<div><b>Teléfono: </b>' + r.Telefono + '</div>' +
+              '<div><b>Código postal: </b>' + r.Codigo_Postal + '</div>' +
+              '<div><b>Tipo: </b>' + r.Tipo + '</div>' +
+              '<div class="precioTexto"><b>Precio: </b>' + r.Precio + '</div>' +
+            '</div>' +
+            '<div class="card-action"><a href="#">Ver más</a></div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    function mostrarResultados(lista){
+      if (!lista.length){ mostrarMensaje('No se encontraron resultados con esos filtros.'); return; }
+      var $c = $('.colContenido');
+      $c.find('.itemMostrado, .mensajeBuscador').remove();
+      var html = '';
+      lista.forEach(function(r){ html += plantillaItem(r); });
+      $c.append(html);
+    }
+
+    function llenarSelect(selector, valores){
+      var $s = $(selector);
+      valores.forEach(function(v){ $s.append($('<option>').val(v).text(v)); });
+      $s.material_select();
+    }
+
+    /* Requerimiento 2: ciudades y tipos sin repetir */
+    $.getJSON('buscador.php', { accion: 'filtros' })
+      .done(function(f){ llenarSelect('#selectCiudad', f.ciudades); llenarSelect('#selectTipo', f.tipos); })
+      .fail(mostrarError);
+
+    /* Requerimiento 1: mostrar todos */
+    $('#mostrarTodos').on('click', function(){
+      $.getJSON('buscador.php', { accion: 'todos' }).done(mostrarResultados).fail(mostrarError);
+    });
+
+    /* Requerimientos 3 a 6: precio + ciudad y/o tipo */
+    $('#formulario').on('submit', function(e){
+      e.preventDefault();
+      $.post('buscador.php', $(this).serialize(), null, 'json').done(mostrarResultados).fail(mostrarError);
+    });
+  </script>
+</body>
+</html>
